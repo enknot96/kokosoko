@@ -22,7 +22,7 @@ async function init(): Promise<void> {
   if (!tab || tab.id === undefined || isRestrictedUrl(tab.url)) {
     fullPageBtn.disabled = true;
     selectAreaBtn.disabled = true;
-    message.textContent = 'このページでは使えません';
+    message.textContent = 'Not available on this page';
     message.hidden = false;
     return;
   }

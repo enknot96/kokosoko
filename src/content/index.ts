@@ -16,10 +16,10 @@ type State =
 const EDGE = 60;
 const MAX_SPEED = 25;
 
-// windowの__kokokara__という引き出しが無ければ（=trueでなければ）
-if (!window.__kokokara__) {
-  // windowに__kokokara__という引き出しを新しく作り、その中にtrueを格納する
-  window.__kokokara__ = true;
+// windowの__kokosoko__という引き出しが無ければ（=trueでなければ）
+if (!window.__kokosoko__) {
+  // windowに__kokosoko__という引き出しを新しく作り、その中にtrueを格納する
+  window.__kokosoko__ = true;
   console.log("フラグが立ちました")
 
   let state: State = { kind: 'idle' };
@@ -141,12 +141,12 @@ if (!window.__kokokara__) {
   function describeCaptureError(error: unknown): string {
     const message = error instanceof Error ? error.message : String(error);
     if (message.includes('CANVAS_TOO_LARGE')) {
-      return 'ページが大きすぎて画像を作成できませんでした。';
+      return 'The page is too large to capture.';
     }
     if (message.includes('TAB_HIDDEN')) {
-      return 'タブが非表示になったため、撮影を中断しました。';
+      return 'Capture was stopped because the tab became hidden.';
     }
-    return '撮影に失敗しました。時間を置いて再度お試しください。';
+    return 'Capture failed. Please try again in a moment.';
   }
 
   // 撮影結果のCanvasをPNGとして保存する
@@ -156,7 +156,7 @@ if (!window.__kokokara__) {
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `kokokara-${Date.now()}.png`;
+      a.download = `kokosoko-${Date.now()}.png`;
       document.body.appendChild(a);
       a.click();
       a.remove();
@@ -275,9 +275,7 @@ if (!window.__kokokara__) {
     exit();
   }
 
-  // フラグとイベントリスナーを即座に解放する。
-  // 「見た目の後片付け（オーバーレイのDOM削除）」とは分離してあり、
-  // Doneトースト表示中でも、これさえ済んでいれば次の起動をすぐ受け付けられる。
+  // フラグとイベントリスナーを解放する
   function detachListeners(): void {
     document.removeEventListener("pointerdown", onPointerDown);
     document.removeEventListener("pointermove", onPointerMove);
@@ -287,7 +285,7 @@ if (!window.__kokokara__) {
     // 破棄済みのoverlayを操作しようとしてしまうため必ず外す
     chrome.runtime.onMessage.removeListener(onRuntimeMessage);
     // フラグを戻し、次にアイコンをクリックした時にもう一度最初から起動できるようにする
-    window.__kokokara__ = undefined;
+    window.__kokosoko__ = undefined;
   }
 
   // 拡張機能を完全に終了し、ページを元の状態に戻す

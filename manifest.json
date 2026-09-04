@@ -1,10 +1,10 @@
 {
   "manifest_version": 3,
-  "name": "ココカラ！",
+  "name": "ココソコ - Koko Soko",
   "version": "0.1.0",
-  "description": "ここから、少しスクロールしてここまで。範囲を指定してスクロールごとスクショ。",
+  "description": "ここからそこまで、範囲を指定してスクロールごとスクショ / Capture anything from here to there — select a range and shoot the whole scroll.",
   "permissions": ["activeTab", "scripting"],
   "background": { "service_worker": "background.js", "type": "module" },
-  "action": { "default_title": "ココカラ！", "default_popup": "popup.html" },
+  "action": { "default_title": "ココソコ - Koko Soko", "default_popup": "popup.html" },
   "icons": { "128": "icons/128.png" }
 }

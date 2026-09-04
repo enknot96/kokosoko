@@ -57,7 +57,7 @@ async function activate(tab: chrome.tabs.Tab, mode: 'select' | 'fullpage'): Prom
     // 注入できないページ。バッジでユーザーに知らせる（新しい権限は不要）
     chrome.action.setBadgeText({ tabId: tab.id, text: '!' });
     chrome.action.setBadgeBackgroundColor({ tabId: tab.id, color: '#e53e3e' });
-    chrome.action.setTitle({ tabId: tab.id, title: 'ココカラ！: このページでは使えません' });
+    chrome.action.setTitle({ tabId: tab.id, title: 'Koko Soko: Not available on this page' });
     return;
   }
 

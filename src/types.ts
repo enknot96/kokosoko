@@ -2,6 +2,6 @@ export {};
 
 declare global {
   interface Window {
-    __kokokara__?: boolean;
+    __kokosoko__?: boolean;
   }
 }
