@@ -176,9 +176,11 @@ if (!window.__kokokara__) {
     // 追従するnav/headerなどが、タイルごとに写り込まないよう一時的に隠す
     const unfreeze = freezeFixedElements();
 
+    let succeeded = false;
     try {
       const canvas = await captureRegion(rect, target);
       savePng(canvas);
+      succeeded = true;
     } catch (error) {
       console.error('撮影に失敗しました', error);
     } finally {
@@ -188,6 +190,49 @@ if (!window.__kokokara__) {
       overlay.show();
       overlay.setRect(null);
       state = { kind: 'idle' };
+      if (succeeded) overlay.showToast('Done!');
+    }
+  }
+
+  // popup の「Full Page」から呼ばれる。ドラッグ不要で、window全体を撮影する
+  async function runFullPage(): Promise<void> {
+    if (state.kind !== 'idle') return;
+
+    const target = new WindowScrollTarget();
+    const win = target.getWindowRect();
+    const rect: Rect = {
+      top: 0,
+      left: 0,
+      width: win.width,
+      height: target.getMaxScrollY() + win.height,
+    };
+
+    state = { kind: 'capturing' };
+    overlay.hide();
+    lockSmoothScroll();
+    const unfreeze = freezeFixedElements();
+
+    let succeeded = false;
+    try {
+      const canvas = await captureRegion(rect, target);
+      savePng(canvas);
+      succeeded = true;
+    } catch (error) {
+      console.error('撮影に失敗しました', error);
+    } finally {
+      unfreeze();
+      unlockSmoothScroll();
+      overlay.show();
+      overlay.setRect(null);
+      state = { kind: 'idle' };
+      if (succeeded) overlay.showToast('Done!');
+    }
+  }
+
+  // background.ts の activate(mode: 'fullpage') から送られてくる
+  function onRuntimeMessage(msg: { type?: string }): void {
+    if (msg.type === 'RUN_FULL_PAGE') {
+      void runFullPage();
     }
   }
 
@@ -217,6 +262,9 @@ if (!window.__kokokara__) {
     document.removeEventListener("pointermove", onPointerMove);
     document.removeEventListener("pointerup", onPointerUp);
     document.removeEventListener("keydown", onKeyDown);
+    // 外したままだと、exit後もこのクロージャのリスナーがメッセージを拾い続け、
+    // 破棄済みのoverlayを操作しようとしてしまうため必ず外す
+    chrome.runtime.onMessage.removeListener(onRuntimeMessage);
     // フラグを戻し、次にアイコンをクリックした時にもう一度最初から起動できるようにする
     window.__kokokara__ = undefined;
   }
@@ -227,4 +275,5 @@ if (!window.__kokokara__) {
   document.addEventListener("pointermove", onPointerMove);
   document.addEventListener("pointerup", onPointerUp);
   document.addEventListener("keydown", onKeyDown);
+  chrome.runtime.onMessage.addListener(onRuntimeMessage);
 }

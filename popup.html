@@ -1,0 +1,49 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>ココカラ！</title>
+    <style>
+      body {
+        margin: 0;
+        width: 220px;
+        padding: 12px;
+        box-sizing: border-box;
+        font: 13px/1.4 -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      }
+      h1 {
+        font-size: 13px;
+        margin: 0 0 8px;
+      }
+      button {
+        display: block;
+        width: 100%;
+        padding: 8px 0;
+        margin-top: 8px;
+        font-size: 13px;
+        border: 1px solid #ccc;
+        border-radius: 6px;
+        background: #f7f7f7;
+        cursor: pointer;
+      }
+      button:hover:not(:disabled) {
+        background: #eee;
+      }
+      button:disabled {
+        opacity: 0.5;
+        cursor: default;
+      }
+      #message {
+        color: #e53e3e;
+        margin: 0;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>ココカラ！</h1>
+    <p id="message" hidden></p>
+    <button id="full-page" type="button">Full Page</button>
+    <button id="select-area" type="button">Select Area</button>
+    <script type="module" src="/src/popup.ts"></script>
+  </body>
+</html>

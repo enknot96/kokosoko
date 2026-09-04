@@ -85,7 +85,37 @@ export function createOverlay(): Overlay {
     label.textContent = `${Math.round(width)} × ${Math.round(height)}`;
   }
 
+  const toast = document.createElement('div');
+  toast.style.cssText = `
+    position: absolute;
+    top: 24px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: #1a1a1a;
+    color: white;
+    font: 14px sans-serif;
+    padding: 8px 16px;
+    border-radius: 6px;
+    opacity: 0;
+    transition: opacity 0.2s ease;
+    pointer-events: none;
+  `;
+  shadow.appendChild(toast);
+
+  let toastTimer: ReturnType<typeof setTimeout> | undefined;
+
+  // 一瞬だけメッセージを表示し、自動的にフェードアウトする
+  function showToast(text: string): void {
+    clearTimeout(toastTimer);
+    toast.textContent = text;
+    toast.style.opacity = '1';
+    toastTimer = setTimeout(() => {
+      toast.style.opacity = '0';
+    }, 1200);
+  }
+
   function destroy(): void {
+    clearTimeout(toastTimer);
     host.remove();
   }
 
@@ -98,5 +128,5 @@ export function createOverlay(): Overlay {
     host.style.display = '';
   }
 
-  return { setRect, destroy, hide, show };
+  return { setRect, destroy, hide, show, showToast };
 }
