@@ -203,7 +203,9 @@ if (!window.__kokokara__) {
     const rect: Rect = {
       top: 0,
       left: 0,
-      width: win.width,
+      // win.width(=innerWidth)はスクロールバー分を含んでしまうため、
+      // スクロールバーを含まないページ幅（clientWidth）を使う
+      width: document.documentElement.clientWidth,
       height: target.getMaxScrollY() + win.height,
     };
 
@@ -222,11 +224,16 @@ if (!window.__kokokara__) {
     } finally {
       unfreeze();
       unlockSmoothScroll();
-      overlay.show();
-      overlay.setRect(null);
       state = { kind: 'idle' };
-      if (succeeded) overlay.showToast('Done!');
     }
+
+    // Full Pageは単発の操作なので、Select Areaのように選択待ち（暗幕表示）には戻さず
+    // Doneトーストを一瞬見せてから拡張機能自体を完全に終了する
+    if (succeeded) {
+      overlay.showToast('Done!');
+      await new Promise((resolve) => setTimeout(resolve, 1200));
+    }
+    exit();
   }
 
   // background.ts の activate(mode: 'fullpage') から送られてくる

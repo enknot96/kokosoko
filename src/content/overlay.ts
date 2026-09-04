@@ -24,13 +24,22 @@ export function createOverlay(): Overlay {
 
   const shadow = host.attachShadow({ mode: 'open' });
 
+  // 暗幕・矩形枠・サイズラベルをまとめたレイヤー
+  // hide()/show() はこのレイヤーだけを対象にする（トーストは別枠で常に出せるようにするため）
+  const selectionLayer = document.createElement('div');
+  selectionLayer.style.cssText = `
+    position: absolute;
+    inset: 0;
+  `;
+  shadow.appendChild(selectionLayer);
+
   const dimmer = document.createElement('div');
   dimmer.style.cssText = `
     position: absolute;
     inset: 0;
     background: rgba(0, 0, 0, 0.35);
   `;
-  shadow.appendChild(dimmer);
+  selectionLayer.appendChild(dimmer);
 
   const border = document.createElement('div');
   border.style.cssText = `
@@ -39,7 +48,7 @@ export function createOverlay(): Overlay {
     border: 2px solid #4da3ff;
     display: none;
   `;
-  shadow.appendChild(border);
+  selectionLayer.appendChild(border);
 
   const label = document.createElement('div');
   label.style.cssText = `
@@ -51,7 +60,7 @@ export function createOverlay(): Overlay {
     display: none;
     transform: translateY(-100%);
   `;
-  shadow.appendChild(label);
+  selectionLayer.appendChild(label);
 
   function setRect(rect: Rect | null): void {
     if (!rect) {
@@ -100,6 +109,7 @@ export function createOverlay(): Overlay {
     transition: opacity 0.2s ease;
     pointer-events: none;
   `;
+  // selectionLayer の外に置き、hide()/show() の影響を受けないようにする
   shadow.appendChild(toast);
 
   let toastTimer: ReturnType<typeof setTimeout> | undefined;
@@ -120,12 +130,14 @@ export function createOverlay(): Overlay {
   }
 
   // display:none にする（visibilityだと透明でも撮影に影響する場合があるため）
+  // トースト（toast）は対象外。撮影完了後にオーバーレイを再表示しない場合でも
+  // Doneメッセージだけは見せたいため
   function hide(): void {
-    host.style.display = 'none';
+    selectionLayer.style.display = 'none';
   }
 
   function show(): void {
-    host.style.display = '';
+    selectionLayer.style.display = '';
   }
 
   return { setRect, destroy, hide, show, showToast };
