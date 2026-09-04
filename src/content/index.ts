@@ -176,22 +176,22 @@ if (!window.__kokokara__) {
     // 追従するnav/headerなどが、タイルごとに写り込まないよう一時的に隠す
     const unfreeze = freezeFixedElements();
 
-    let succeeded = false;
     try {
       const canvas = await captureRegion(rect, target);
       savePng(canvas);
-      succeeded = true;
     } catch (error) {
       console.error('撮影に失敗しました', error);
     } finally {
       // 成功しても失敗しても、必ずページを元の状態に戻す
       unfreeze();
       unlockSmoothScroll();
-      overlay.show();
-      overlay.setRect(null);
       state = { kind: 'idle' };
-      if (succeeded) overlay.showToast('Done!');
     }
+
+    // 撮影が終わったら選択待ち（暗幕表示）には戻さず、拡張機能自体を完全に終了する。
+    // ダウンロード完了はブラウザ標準の表示に任せるため、独自の完了表示は出さない。
+    // もう一度使うにはアイコンから起動し直す。
+    exit();
   }
 
   // popup の「Full Page」から呼ばれる。ドラッグ不要で、window全体を撮影する
@@ -214,11 +214,9 @@ if (!window.__kokokara__) {
     lockSmoothScroll();
     const unfreeze = freezeFixedElements();
 
-    let succeeded = false;
     try {
       const canvas = await captureRegion(rect, target);
       savePng(canvas);
-      succeeded = true;
     } catch (error) {
       console.error('撮影に失敗しました', error);
     } finally {
@@ -228,11 +226,7 @@ if (!window.__kokokara__) {
     }
 
     // Full Pageは単発の操作なので、Select Areaのように選択待ち（暗幕表示）には戻さず
-    // Doneトーストを一瞬見せてから拡張機能自体を完全に終了する
-    if (succeeded) {
-      overlay.showToast('Done!');
-      await new Promise((resolve) => setTimeout(resolve, 1200));
-    }
+    // 拡張機能自体を完全に終了する
     exit();
   }
 
@@ -262,18 +256,25 @@ if (!window.__kokokara__) {
     exit();
   }
 
-  // 拡張機能を完全に終了し、ページを元の状態に戻す
-  function exit(): void {
-    overlay.destroy();
+  // フラグとイベントリスナーを即座に解放する。
+  // 「見た目の後片付け（オーバーレイのDOM削除）」とは分離してあり、
+  // Doneトースト表示中でも、これさえ済んでいれば次の起動をすぐ受け付けられる。
+  function detachListeners(): void {
     document.removeEventListener("pointerdown", onPointerDown);
     document.removeEventListener("pointermove", onPointerMove);
     document.removeEventListener("pointerup", onPointerUp);
     document.removeEventListener("keydown", onKeyDown);
-    // 外したままだと、exit後もこのクロージャのリスナーがメッセージを拾い続け、
+    // 外したままだと、この後もこのクロージャのリスナーがメッセージを拾い続け、
     // 破棄済みのoverlayを操作しようとしてしまうため必ず外す
     chrome.runtime.onMessage.removeListener(onRuntimeMessage);
     // フラグを戻し、次にアイコンをクリックした時にもう一度最初から起動できるようにする
     window.__kokokara__ = undefined;
+  }
+
+  // 拡張機能を完全に終了し、ページを元の状態に戻す
+  function exit(): void {
+    detachListeners();
+    overlay.destroy();
   }
 
   // 最初にcontent.jsがページに注入される

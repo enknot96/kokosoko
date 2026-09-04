@@ -8,8 +8,6 @@ export interface Overlay {
   // 撮影中など、一時的にオーバーレイ自身を非表示にする（destroyと違い後で復元できる）
   hide(): void;
   show(): void;
-  // 画面上部に短いメッセージを一瞬表示する（撮影完了の合図など）
-  showToast(text: string): void;
 }
 
 export function createOverlay(): Overlay {
@@ -24,22 +22,13 @@ export function createOverlay(): Overlay {
 
   const shadow = host.attachShadow({ mode: 'open' });
 
-  // 暗幕・矩形枠・サイズラベルをまとめたレイヤー
-  // hide()/show() はこのレイヤーだけを対象にする（トーストは別枠で常に出せるようにするため）
-  const selectionLayer = document.createElement('div');
-  selectionLayer.style.cssText = `
-    position: absolute;
-    inset: 0;
-  `;
-  shadow.appendChild(selectionLayer);
-
   const dimmer = document.createElement('div');
   dimmer.style.cssText = `
     position: absolute;
     inset: 0;
     background: rgba(0, 0, 0, 0.35);
   `;
-  selectionLayer.appendChild(dimmer);
+  shadow.appendChild(dimmer);
 
   const border = document.createElement('div');
   border.style.cssText = `
@@ -48,7 +37,7 @@ export function createOverlay(): Overlay {
     border: 2px solid #4da3ff;
     display: none;
   `;
-  selectionLayer.appendChild(border);
+  shadow.appendChild(border);
 
   const label = document.createElement('div');
   label.style.cssText = `
@@ -60,7 +49,7 @@ export function createOverlay(): Overlay {
     display: none;
     transform: translateY(-100%);
   `;
-  selectionLayer.appendChild(label);
+  shadow.appendChild(label);
 
   function setRect(rect: Rect | null): void {
     if (!rect) {
@@ -94,51 +83,18 @@ export function createOverlay(): Overlay {
     label.textContent = `${Math.round(width)} × ${Math.round(height)}`;
   }
 
-  const toast = document.createElement('div');
-  toast.style.cssText = `
-    position: absolute;
-    top: 24px;
-    left: 50%;
-    transform: translateX(-50%);
-    background: #1a1a1a;
-    color: white;
-    font: 14px sans-serif;
-    padding: 8px 16px;
-    border-radius: 6px;
-    opacity: 0;
-    transition: opacity 0.2s ease;
-    pointer-events: none;
-  `;
-  // selectionLayer の外に置き、hide()/show() の影響を受けないようにする
-  shadow.appendChild(toast);
-
-  let toastTimer: ReturnType<typeof setTimeout> | undefined;
-
-  // 一瞬だけメッセージを表示し、自動的にフェードアウトする
-  function showToast(text: string): void {
-    clearTimeout(toastTimer);
-    toast.textContent = text;
-    toast.style.opacity = '1';
-    toastTimer = setTimeout(() => {
-      toast.style.opacity = '0';
-    }, 1200);
-  }
-
   function destroy(): void {
-    clearTimeout(toastTimer);
     host.remove();
   }
 
   // display:none にする（visibilityだと透明でも撮影に影響する場合があるため）
-  // トースト（toast）は対象外。撮影完了後にオーバーレイを再表示しない場合でも
-  // Doneメッセージだけは見せたいため
   function hide(): void {
-    selectionLayer.style.display = 'none';
+    host.style.display = 'none';
   }
 
   function show(): void {
-    selectionLayer.style.display = '';
+    host.style.display = '';
   }
 
-  return { setRect, destroy, hide, show, showToast };
+  return { setRect, destroy, hide, show };
 }
