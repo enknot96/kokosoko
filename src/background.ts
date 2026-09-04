@@ -48,9 +48,9 @@ async function throttledCapture(windowId: number): Promise<string> {
   throw new Error("CAPTURE_FAILED");
 }
 
-// アイコンをクリック／ショートカットが押された時の、共通の起動処理
-// mode: 'select'（範囲選択、既定） / 'fullpage'（ページ全体を自動撮影）
-async function activate(tab: chrome.tabs.Tab, mode: 'select' | 'fullpage' = 'select'): Promise<void> {
+// popup.html でモードが選ばれた時の起動処理
+// mode: 'select'（範囲選択） / 'fullpage'（ページ全体を自動撮影）
+async function activate(tab: chrome.tabs.Tab, mode: 'select' | 'fullpage'): Promise<void> {
   if (tab.id === undefined) return;
 
   if (isRestrictedUrl(tab.url)) {
@@ -77,13 +77,6 @@ async function activate(tab: chrome.tabs.Tab, mode: 'select' | 'fullpage' = 'sel
 
 // アイコンクリックは popup.html（action.default_popup）が受け持つため、
 // ここでは拾わない（default_popup 設定中は chrome.action.onClicked が発火しない仕様のため）
-
-// 一致する登録コマンドが押されたら、Chromeがそれを自動検知し、onCommandが発火し、対応するcommand名が引数に渡される
-chrome.commands.onCommand.addListener(async (command, tab) => {
-  if (command === 'start-capture') {
-    await activate(tab);
-  }
-})
 
 // APIの仕様として、~.onMessage関数の引数は...
 // 1番目：送られてきたメッセージの中身 2番目：誰から送られてきたか 3番目：返事をするための関数 と決まっている

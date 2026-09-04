@@ -6,11 +6,5 @@
   "permissions": ["activeTab", "scripting"],
   "background": { "service_worker": "background.js", "type": "module" },
   "action": { "default_title": "ココカラ！", "default_popup": "popup.html" },
-  "commands": {
-    "start-capture": {
-      "suggested_key": { "default": "Ctrl+Shift+K", "mac": "Command+Shift+K" },
-      "description": "範囲選択を開始"
-    }
-  },
   "icons": { "128": "icons/128.png" }
 }
