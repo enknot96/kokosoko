@@ -5,7 +5,7 @@
   "description": "ここから、少しスクロールしてここまで。範囲を指定してスクロールごとスクショ。",
   "permissions": ["activeTab", "scripting"],
   "background": { "service_worker": "background.js", "type": "module" },
-  "action": { "default_title": "ココカラ！" },
+  "action": { "default_title": "ココカラ！", "default_popup": "popup.html" },
   "commands": {
     "start-capture": {
       "suggested_key": { "default": "Ctrl+Shift+K", "mac": "Command+Shift+K" },
