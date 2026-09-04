@@ -1,0 +1,16 @@
+{
+  "manifest_version": 3,
+  "name": "ココカラ！",
+  "version": "0.1.0",
+  "description": "ここから、少しスクロールしてここまで。範囲を指定してスクロールごとスクショ。",
+  "permissions": ["activeTab", "scripting"],
+  "background": { "service_worker": "background.js", "type": "module" },
+  "action": { "default_title": "ココカラ！" },
+  "commands": {
+    "start-capture": {
+      "suggested_key": { "default": "Ctrl+Shift+K", "mac": "Command+Shift+K" },
+      "description": "範囲選択を開始"
+    }
+  },
+  "icons": { "128": "icons/128.png" }
+}
