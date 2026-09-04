@@ -2,6 +2,8 @@
 // content.js というファイルを、このactiveTabの中で実行して とChromeに頼んでいるだけ
 // Chrome拡張機能の立ち上げ方を二通り記載
 
+import { isRestrictedUrl } from './shared/restricted-url';
+
 // activeTabへ、動的にscriptを注入=ユーザーが明示的にアイコンをクリックした、そのタブだけに処理の実行を限定できる
 // → 訪問する全サイトの中身を読み書きできる状態にしない（ストアの審査やユーザーへの警告表示で、重い権限として扱われるため）
 // 操作対象にしたいタブの一意の数値IDを引数として受け取る
@@ -46,17 +48,9 @@ async function throttledCapture(windowId: number): Promise<string> {
   throw new Error("CAPTURE_FAILED");
 }
 
-// content scriptを注入できない特別なページ（chrome://、Web Storeなど）かどうかを判定する
-const RESTRICTED_URL = /^(chrome|chrome-extension|edge|about):\/\/|^https:\/\/(chrome\.google\.com\/webstore|chromewebstore\.google\.com)/;
-
-function isRestrictedUrl(url: string | undefined): boolean {
-  // URLが取得できない場合も、安全側に倒して「使えない」扱いにする
-  if (!url) return true;
-  return RESTRICTED_URL.test(url);
-}
-
 // アイコンをクリック／ショートカットが押された時の、共通の起動処理
-async function activate(tab: chrome.tabs.Tab): Promise<void> {
+// mode: 'select'（範囲選択、既定） / 'fullpage'（ページ全体を自動撮影）
+async function activate(tab: chrome.tabs.Tab, mode: 'select' | 'fullpage' = 'select'): Promise<void> {
   if (tab.id === undefined) return;
 
   if (isRestrictedUrl(tab.url)) {
@@ -73,12 +67,16 @@ async function activate(tab: chrome.tabs.Tab): Promise<void> {
 
   try {
     await injectContentScript(tab.id);
+    if (mode === 'fullpage') {
+      await chrome.tabs.sendMessage(tab.id, { type: 'RUN_FULL_PAGE' });
+    }
   } catch (error) {
     console.error('スクリプト注入に失敗しました', error);
   }
 }
 
-chrome.action.onClicked.addListener(activate);
+// アイコンクリックは popup.html（action.default_popup）が受け持つため、
+// ここでは拾わない（default_popup 設定中は chrome.action.onClicked が発火しない仕様のため）
 
 // 一致する登録コマンドが押されたら、Chromeがそれを自動検知し、onCommandが発火し、対応するcommand名が引数に渡される
 chrome.commands.onCommand.addListener(async (command, tab) => {
@@ -98,5 +96,10 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
       .then((dataUrl) => sendResponse({ ok: true, dataUrl}))
       .catch((e) => sendResponse({ ok: false, error: String(e)}));
     return true;
+  }
+
+  if (msg.type === "ACTIVATE") {
+    // popup.ts から、選ばれたモードとタブIDを渡されて呼ばれる
+    chrome.tabs.get(msg.tabId).then((tab) => activate(tab, msg.mode));
   }
 })

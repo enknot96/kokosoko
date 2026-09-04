@@ -8,6 +8,8 @@ export interface Overlay {
   // 撮影中など、一時的にオーバーレイ自身を非表示にする（destroyと違い後で復元できる）
   hide(): void;
   show(): void;
+  // 画面上部に短いメッセージを一瞬表示する（撮影完了の合図など）
+  showToast(text: string): void;
 }
 
 export function createOverlay(): Overlay {
