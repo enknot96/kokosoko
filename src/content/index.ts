@@ -137,6 +137,18 @@ if (!window.__kokokara__) {
     render();
   }
 
+  // 撮影失敗時、原因に応じてユーザーに見せる文言を決める
+  function describeCaptureError(error: unknown): string {
+    const message = error instanceof Error ? error.message : String(error);
+    if (message.includes('CANVAS_TOO_LARGE')) {
+      return 'ページが大きすぎて画像を作成できませんでした。';
+    }
+    if (message.includes('TAB_HIDDEN')) {
+      return 'タブが非表示になったため、撮影を中断しました。';
+    }
+    return '撮影に失敗しました。時間を置いて再度お試しください。';
+  }
+
   // 撮影結果のCanvasをPNGとして保存する
   function savePng(canvas: HTMLCanvasElement): void {
     canvas.toBlob((blob) => {
@@ -176,11 +188,13 @@ if (!window.__kokokara__) {
     // 追従するnav/headerなどが、タイルごとに写り込まないよう一時的に隠す
     const unfreeze = freezeFixedElements();
 
+    let failure: unknown;
     try {
       const canvas = await captureRegion(rect, target);
       savePng(canvas);
     } catch (error) {
       console.error('撮影に失敗しました', error);
+      failure = error;
     } finally {
       // 成功しても失敗しても、必ずページを元の状態に戻す
       unfreeze();
@@ -192,6 +206,8 @@ if (!window.__kokokara__) {
     // ダウンロード完了はブラウザ標準の表示に任せるため、独自の完了表示は出さない。
     // もう一度使うにはアイコンから起動し直す。
     exit();
+    // ページを元の状態に戻してから、失敗時のみユーザーに知らせる
+    if (failure) alert(describeCaptureError(failure));
   }
 
   // popup の「Full Page」から呼ばれる。ドラッグ不要で、window全体を撮影する
@@ -214,11 +230,13 @@ if (!window.__kokokara__) {
     lockSmoothScroll();
     const unfreeze = freezeFixedElements();
 
+    let failure: unknown;
     try {
       const canvas = await captureRegion(rect, target);
       savePng(canvas);
     } catch (error) {
       console.error('撮影に失敗しました', error);
+      failure = error;
     } finally {
       unfreeze();
       unlockSmoothScroll();
@@ -228,6 +246,7 @@ if (!window.__kokokara__) {
     // Full Pageは単発の操作なので、Select Areaのように選択待ち（暗幕表示）には戻さず
     // 拡張機能自体を完全に終了する
     exit();
+    if (failure) alert(describeCaptureError(failure));
   }
 
   // background.ts の activate(mode: 'fullpage') から送られてくる

@@ -84,6 +84,12 @@ export async function captureRegion(rect: Rect, target: ScrollTarget): Promise<H
 
   // 選択範囲の終わりに、まだ到達していない間は、繰り返し続ける という条件
   while (contentY < rect.top + rect.height) {
+    // タブが非アクティブ（他タブに切り替えた等）だと captureVisibleTab が失敗するため、
+    // 無駄なリトライをする前にここで検知して中断する
+    if (document.visibilityState === 'hidden') {
+      throw new Error('TAB_HIDDEN');
+    }
+
     // 頼んだ位置が maxScroll を超えないようにクランプしてからスクロール
     target.scrollToShowContentAt(Math.min(contentY, maxScroll));
     await waitForRender();
