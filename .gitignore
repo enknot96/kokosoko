@@ -5,3 +5,4 @@ dist/
 # （`docs/` と書くとディレクトリごと走査対象外になり、下の再包含が効かないため `docs/*`）
 docs/*
 !docs/store-listing.md
+NOTES.md
