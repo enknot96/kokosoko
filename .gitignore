@@ -6,3 +6,6 @@ dist/
 docs/*
 !docs/store-listing.md
 NOTES.md
+
+# 配布用ZIP（ビルド成果物）
+*.zip
