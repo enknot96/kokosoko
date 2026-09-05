@@ -220,9 +220,9 @@ https://github.com/enknot96/kokosoko/issues
 
 | 用途 | 規格 | 状態 |
 | --- | --- | --- |
-| 拡張機能アイコン | 128×128 PNG（96×96 の絵柄＋周囲16pxの透過余白） | ✅ `public/icon/icon-128.png`（透過余白の有無は要確認） |
+| 拡張機能アイコン | 128×128 PNG（96×96 の絵柄＋周囲16pxの透過余白） | ✅ `public/icon/icon-128.png`（絵柄96×92・余白16px以上に調整済み） |
 | スクリーンショット | 1280×800（推奨）または 640×400、角丸なし・余白なし、1〜5枚 | 🔶 1枚目のみ用意済み（`assets/screenshots/screenshot-01.png`）。2枚目以降を `assets/screenshots/` へ |
-| 小プロモタイル | 440×280 | ⬜ 未作成 |
+| 小プロモタイル | 440×280 | ✅ `assets/promo/promo-440x280.png`（1280×800版を縮小して作成） |
 | マーキープロモタイル | 1400×560（任意） | ⬜ 未作成 |
 
 出典: [Image guidelines - Chrome for Developers](https://developer.chrome.com/docs/webstore/images)
@@ -264,9 +264,21 @@ sips -c 800 1280 tmp.png --out assets/screenshots/screenshot-01.png
 
 なお元の `assets/thumbnail/keyvisual.png` は 1223×1286 のほぼ正方形のため、そのままでは横長枠に使えない（1280×800 に縮小すると左右に259pxずつ余白が出て「余白なし」要件に反し、440×280 に中央クロップすると「Koko」「Soko」の文字が両方消える）。横長版が必要な場面では上記の作成済みファイルを使うこと。
 
-**440×280 小プロモタイルへの流用**
+**440×280 小プロモタイル（作成済み）**
 
-1280×800 版をそのまま 440×280 に縮小すると、キャッチコピーが読めなくなる。テキストは **「ココソコ / Koko Soko」のみ** に絞った別バージョンを作り、キャラは上半身に寄せる。加工元は `assets/thumbnail/keyvisual-base.png`（文字入れ前）。
+`assets/promo/promo-440x280.png` として作成済み。1280×800（比率1.600）と 440×280（比率1.571）はほぼ同じ比率のため、高さ280に縮小（448×280）してから左右を4pxずつ削るだけで規格に収まり、構図も文字も損なわれていない。
+
+再作成が必要な場合のコマンド:
+
+```bash
+python3 -c "
+from PIL import Image
+src = Image.open('assets/screenshots/screenshot-01.png').convert('RGB')
+r = src.resize((round(src.width * 280 / src.height), 280), Image.LANCZOS)
+left = (r.width - 440) // 2
+r.crop((left, 0, left + 440, 280)).save('assets/promo/promo-440x280.png')
+"
+```
 
 作業は Canva、Figma、Photoshop などの画像編集ツールで行う（`sips` では文字入れや再配置ができない）。
 
