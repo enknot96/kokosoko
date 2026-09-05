@@ -1,10 +1,12 @@
 <div align="center">
 
-<img src="./assets/thumbnail/keyvisual.png" width="360" alt="ココソコ - Koko Soko">
+<img src="./assets/screenshots/screenshot-01.png" alt="ココソコ - Koko Soko">
 
 # ココソコ - Koko Soko
 
 **ココからソコまで、範囲を指定してスクロールごとスクショできるChrome拡張機能**
+
+**Capture anything from here to there — select a range and shoot the whole scroll.**
 
 [![Chrome Web Store](https://img.shields.io/badge/Chrome%20Web%20Store-Install-4285F4?logo=googlechrome&logoColor=white)](https://chromewebstore.google.com/detail/EXTENSION_ID)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](./LICENSE)
@@ -14,11 +16,9 @@
 </div>
 
 <!--
-公開後にやること:
-1. 上のバッジの EXTENSION_ID を、実際のChromeウェブストアの拡張機能IDに差し替える
-2. 下のデモGIF・スクリーンショットのコメントアウトを解除する
-   - assets/demo/demo.gif
-   - assets/screenshots/screenshot-01.png 〜 screenshot-05.png
+やること:
+1. ストア公開後、バッジとインストールリンクの EXTENSION_ID を実際の拡張機能IDに差し替える（日英2箇所ずつ）
+2. デモGIF（assets/demo/demo.gif）を用意したら、デモ節のコメントアウトを解除する（日英2箇所）
 -->
 
 ---
@@ -44,13 +44,11 @@
 - **追従ヘッダーを自動で退避** — 固定表示のヘッダーやサイドバーは撮影中だけ一時的に非表示にするので、合成画像に同じヘッダーが何度も写り込みません
 - **最小限の権限** — 要求するのは `activeTab` と `scripting` のみ。訪問するすべてのサイトを常時読み書きできるような強い権限は要求しません
 
-<!--
 #### スクリーンショット
 
-| 範囲を選択 | 撮影中 | 保存された画像 |
+| 範囲を選ぶ | 撮影結果 | ポップアップ |
 |---|---|---|
-| <img src="./assets/screenshots/screenshot-01.png" width="260"> | <img src="./assets/screenshots/screenshot-02.png" width="260"> | <img src="./assets/screenshots/screenshot-03.png" width="260"> |
--->
+| <img src="./assets/screenshots/screenshot-02.png" width="260" alt="ドラッグで範囲を選んでいるところ"> | <img src="./assets/screenshots/screenshot-03.png" width="260" alt="画面に収まらない長さが1枚のPNGになる"> | <img src="./assets/screenshots/screenshot-04.png" width="260" alt="モードを選ぶポップアップ"> |
 
 ### 使い方
 
@@ -64,23 +62,7 @@
 
 ### インストール
 
-#### Chrome ウェブストアから（推奨）
-
 [Chrome ウェブストアのページ](https://chromewebstore.google.com/detail/EXTENSION_ID)を開き、「Chromeに追加」をクリックしてください。
-
-#### ソースからビルドする（開発者向け）
-
-```bash
-git clone https://github.com/enknot96/kokosoko.git
-cd kokosoko
-pnpm install
-pnpm build
-```
-
-1. Chromeで `chrome://extensions` を開く
-2. 右上の「デベロッパーモード」をONにする
-3. 「パッケージ化されていない拡張機能を読み込む」を選択
-4. 生成された `dist` フォルダを選択する
 
 ### 既知の制限
 
@@ -99,12 +81,22 @@ pnpm build
 
 ### 開発
 
-#### コマンド
+#### ソースからビルドして読み込む
 
 ```bash
+git clone https://github.com/enknot96/kokosoko.git
+cd kokosoko
+pnpm install
 pnpm build      # dist/ にビルド
 pnpm typecheck  # 型チェック（出力なし）
 ```
+
+ビルドした拡張機能をChromeに読み込むには:
+
+1. Chromeで `chrome://extensions` を開く
+2. 右上の「デベロッパーモード」をONにする
+3. 「パッケージ化されていない拡張機能を読み込む」を選択
+4. 生成された `dist` フォルダを選択する
 
 #### 構成
 
@@ -145,13 +137,11 @@ Long tables, full articles, chat logs — anything that doesn't fit on one scree
 - **Sticky elements are hidden automatically** — fixed headers and sidebars are temporarily hidden during capture, so they don't appear repeated throughout the stitched image
 - **Minimal permissions** — only `activeTab` and `scripting`. No broad, always-on access to every site you visit
 
-<!--
 #### Screenshots
 
-| Select an area | Capturing | The saved image |
+| Select an area | The saved image | The popup |
 |---|---|---|
-| <img src="./assets/screenshots/screenshot-01.png" width="260"> | <img src="./assets/screenshots/screenshot-02.png" width="260"> | <img src="./assets/screenshots/screenshot-03.png" width="260"> |
--->
+| <img src="./assets/screenshots/screenshot-02.png" width="260" alt="Dragging to select an area"> | <img src="./assets/screenshots/screenshot-03.png" width="260" alt="A page taller than the screen saved as one PNG"> | <img src="./assets/screenshots/screenshot-04.png" width="260" alt="The mode-selection popup"> |
 
 ### Usage
 
@@ -165,23 +155,7 @@ Press `Esc` while selecting to cancel (once capturing has started, it can't be c
 
 ### Installation
 
-#### From the Chrome Web Store (recommended)
-
 Open the [Chrome Web Store listing](https://chromewebstore.google.com/detail/EXTENSION_ID) and click "Add to Chrome".
-
-#### Build from source (for developers)
-
-```bash
-git clone https://github.com/enknot96/kokosoko.git
-cd kokosoko
-pnpm install
-pnpm build
-```
-
-1. Open `chrome://extensions` in Chrome
-2. Enable "Developer mode" (top right)
-3. Click "Load unpacked"
-4. Select the generated `dist` folder
 
 ### Known limitations
 
@@ -200,12 +174,22 @@ This extension collects and transmits no personal information, no browsing histo
 
 ### Development
 
-#### Commands
+#### Build from source and load it
 
 ```bash
+git clone https://github.com/enknot96/kokosoko.git
+cd kokosoko
+pnpm install
 pnpm build      # build into dist/
 pnpm typecheck  # type-check only, emits nothing
 ```
+
+To load the built extension in Chrome:
+
+1. Open `chrome://extensions` in Chrome
+2. Enable "Developer mode" (top right)
+3. Click "Load unpacked"
+4. Select the generated `dist` folder
 
 #### Architecture
 
