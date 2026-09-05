@@ -48,7 +48,9 @@
 
 | 範囲を選ぶ | 撮影結果 | ポップアップ |
 |---|---|---|
-| <img src="./assets/screenshots/screenshot-02.png" width="260" alt="ドラッグで範囲を選んでいるところ"> | <img src="./assets/screenshots/screenshot-03.png" width="260" alt="画面に収まらない長さが1枚のPNGになる"> | <img src="./assets/screenshots/screenshot-04.png" width="260" alt="モードを選ぶポップアップ"> |
+| <img src="./assets/screenshots/screenshot-02.png" width="260" alt="ドラッグで範囲を選んでいるところ"> | <img src="./assets/screenshots/screenshot-03.png" width="260" alt="1枚の縦長PNG。掲載の都合で上下2つに分けて並べています"> | <img src="./assets/screenshots/screenshot-04.png" width="260" alt="モードを選ぶポップアップ"> |
+
+> 真ん中の画像について: 保存されるのは**1枚の縦長PNG**です。横長の枠に収めるため、上下に切って左右に並べて掲載しています。実際に2枚に分割されるわけではありません。
 
 ### 使い方
 
@@ -141,7 +143,9 @@ Long tables, full articles, chat logs — anything that doesn't fit on one scree
 
 | Select an area | The saved image | The popup |
 |---|---|---|
-| <img src="./assets/screenshots/screenshot-02.png" width="260" alt="Dragging to select an area"> | <img src="./assets/screenshots/screenshot-03.png" width="260" alt="A page taller than the screen saved as one PNG"> | <img src="./assets/screenshots/screenshot-04.png" width="260" alt="The mode-selection popup"> |
+| <img src="./assets/screenshots/screenshot-02.png" width="260" alt="Dragging to select an area"> | <img src="./assets/screenshots/screenshot-03.png" width="260" alt="One tall PNG, shown here cut in half and placed side by side"> | <img src="./assets/screenshots/screenshot-04.png" width="260" alt="The mode-selection popup"> |
+
+> About the middle image: what you get is **a single tall PNG**. It is cut in half and placed side by side here only to fit a landscape frame — the capture is never split into two files.
 
 ### Usage
 
