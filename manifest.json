@@ -1,8 +1,9 @@
 {
   "manifest_version": 3,
   "name": "ココソコ - Koko Soko",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "description": "ここからそこまで、範囲を指定してスクロールごとスクショ / Capture anything from here to there — select a range and shoot the whole scroll.",
+  "homepage_url": "https://github.com/enknot96/kokosoko",
   "permissions": ["activeTab", "scripting"],
   "background": { "service_worker": "background.js", "type": "module" },
   "action": {
