@@ -17,8 +17,7 @@
 
 <!--
 やること:
-1. ストア公開後、バッジとインストールリンクの EXTENSION_ID を実際の拡張機能IDに差し替える（日英2箇所ずつ）
-2. デモGIF（assets/demo/demo.gif）を用意したら、デモ節のコメントアウトを解除する（日英2箇所）
+ストア公開後、バッジとインストールリンクの EXTENSION_ID を実際の拡張機能IDに差し替える（日英2箇所ずつ）
 -->
 
 ---
@@ -31,11 +30,15 @@
 
 画面に収まりきらない長い表、記事全文、チャットのやり取りなどを、何枚もスクショを撮って後からつなぎ合わせる手間なしに、1枚のPNGとして保存できます。
 
-<!--
 #### デモ
 
-<img src="./assets/demo/demo.gif" width="720" alt="ココソコの動作デモ">
--->
+**Select Area — 範囲を選んで撮る**
+
+<img src="./assets/demo/select-area.gif" width="720" alt="ドラッグで範囲を選ぶと、自動でスクロールしながら1枚の画像に合成される様子">
+
+**Full Page — ページ全体を撮る**
+
+<img src="./assets/demo/full-page.gif" width="720" alt="ページの先頭から末尾まで自動でスクロールしながら撮影する様子">
 
 ### 主な特徴
 
@@ -126,11 +129,15 @@ pnpm typecheck  # 型チェック（出力なし）
 
 Long tables, full articles, chat logs — anything that doesn't fit on one screen — can be saved as a single PNG, without taking several screenshots and stitching them together by hand.
 
-<!--
 #### Demo
 
-<img src="./assets/demo/demo.gif" width="720" alt="Koko Soko in action">
--->
+**Select Area — capture a region you choose**
+
+<img src="./assets/demo/select-area.gif" width="720" alt="Dragging to select a region, then the page scrolling automatically as it is stitched into one image">
+
+**Full Page — capture the whole page**
+
+<img src="./assets/demo/full-page.gif" width="720" alt="Scrolling automatically from the top of the page to the bottom while capturing">
 
 ### Features
 
