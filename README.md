@@ -8,17 +8,12 @@
 
 **Capture anything from here to there — select a range and shoot the whole scroll.**
 
-[![Chrome Web Store](https://img.shields.io/badge/Chrome%20Web%20Store-Install-4285F4?logo=googlechrome&logoColor=white)](https://chromewebstore.google.com/detail/EXTENSION_ID)
+[![Chrome Web Store](https://img.shields.io/badge/Chrome%20Web%20Store-Install-4285F4?logo=googlechrome&logoColor=white)](https://chromewebstore.google.com/detail/hobllnakplgdhgkjdanilcgplbpanbcm)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](./LICENSE)
 
 🇯🇵 [日本語](#日本語) | 🇺🇸 [English](#english)
 
 </div>
-
-<!--
-やること:
-ストア公開後、バッジとインストールリンクの EXTENSION_ID を実際の拡張機能IDに差し替える（日英2箇所ずつ）
--->
 
 ---
 
@@ -67,7 +62,7 @@
 
 ### インストール
 
-[Chrome ウェブストアのページ](https://chromewebstore.google.com/detail/EXTENSION_ID)を開き、「Chromeに追加」をクリックしてください。
+[Chrome ウェブストアのページ](https://chromewebstore.google.com/detail/hobllnakplgdhgkjdanilcgplbpanbcm)を開き、「Chromeに追加」をクリックしてください。
 
 ### 既知の制限
 
@@ -166,7 +161,7 @@ Press `Esc` while selecting to cancel (once capturing has started, it can't be c
 
 ### Installation
 
-Open the [Chrome Web Store listing](https://chromewebstore.google.com/detail/EXTENSION_ID) and click "Add to Chrome".
+Open the [Chrome Web Store listing](https://chromewebstore.google.com/detail/hobllnakplgdhgkjdanilcgplbpanbcm) and click "Add to Chrome".
 
 ### Known limitations
 
