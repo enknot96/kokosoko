@@ -1,13 +1,13 @@
 {
   "manifest_version": 3,
-  "name": "ココソコ - Koko Soko",
-  "version": "1.0.0",
-  "description": "ココからソコまで、範囲を指定してスクロールごとスクショ / Capture anything from here to there — select a range and shoot the whole scroll.",
+  "name": "Koko Soko - ココソコ",
+  "version": "1.0.1",
+  "description": "Capture anything from here to there — select a range and shoot the whole scroll. / ココからソコまで、範囲を指定してスクロールごとスクショ",
   "homepage_url": "https://github.com/enknot96/kokosoko",
   "permissions": ["activeTab", "scripting"],
   "background": { "service_worker": "background.js", "type": "module" },
   "action": {
-    "default_title": "ココソコ - Koko Soko",
+    "default_title": "Koko Soko - ココソコ",
     "default_popup": "popup.html",
     "default_icon": {
       "16": "icon/icon-16.png",
