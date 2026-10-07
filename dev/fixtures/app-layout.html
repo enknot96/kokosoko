@@ -1,0 +1,169 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<title>fixture: app-layout (Slack風)</title>
+<style>
+  /* ページ自体はスクロールしない。中身のスクロールは各要素が個別に持つ */
+  html, body {
+    height: 100%;
+    margin: 0;
+    overflow: hidden;
+    font-family: sans-serif;
+  }
+
+  /* 祖先が fixed なケースを再現するためのラッパー。要素内スクロール対応の検証で必須 */
+  .app {
+    position: fixed;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    background: #fff;
+  }
+
+  .header {
+    flex: 0 0 48px;
+    height: 48px;
+    background: #4a154b;
+    color: #fff;
+    display: flex;
+    align-items: center;
+    padding: 0 16px;
+    font-weight: bold;
+  }
+
+  .body {
+    flex: 1;
+    display: flex;
+    min-height: 0; /* flex子をスクロールさせるためにはこれが無いと縮まない */
+  }
+
+  .sidebar {
+    flex: 0 0 240px;
+    width: 240px;
+    overflow-y: auto;
+    background: #3f0e40;
+    color: #eee;
+  }
+  .channel {
+    padding: 6px 12px;
+    font-size: 13px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  }
+
+  .main {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+  }
+
+  .messages {
+    flex: 1;
+    overflow-y: auto;
+    position: relative;
+  }
+
+  .composer {
+    flex: 0 0 64px;
+    height: 64px;
+    border-top: 1px solid #ddd;
+    display: flex;
+    align-items: center;
+    padding: 0 16px;
+    background: #f8f8f8;
+    color: #888;
+  }
+
+  .row {
+    display: flex;
+    align-items: center;
+    box-sizing: border-box;
+    padding: 0 12px;
+  }
+  .row.even { background: #ffffff; }
+  .row.odd  { background: #f2f4f7; }
+
+  /* 左端の目盛り。大きな行番号が画像の切れ目にかかっても、細かい数字で照合できるようにする */
+  .ruler {
+    flex: 0 0 40px;
+    width: 40px;
+    text-align: right;
+    padding-right: 8px;
+    margin-right: 12px;
+    font-size: 11px;
+    color: #999;
+    border-right: 1px solid #ddd;
+  }
+  .label {
+    font-size: 18px;
+    font-weight: bold;
+    color: #222;
+  }
+
+  /* 50行ごとの日付区切り。sticky でメッセージ一覧の上端に貼り付く */
+  .date-sep {
+    position: sticky;
+    top: 0;
+    background: #fceec7;
+    border-bottom: 1px solid #d8b64c;
+    padding: 4px 12px;
+    font-weight: bold;
+    font-size: 12px;
+    z-index: 2;
+  }
+</style>
+</head>
+<body>
+  <div class="app">
+    <div class="header">Koko Soko Fixture - app-layout</div>
+    <div class="body">
+      <nav class="sidebar" id="sidebar"></nav>
+      <div class="main">
+        <div class="messages" id="messages"></div>
+        <div class="composer">メッセージを入力...(このエリアはスクロールしない)</div>
+      </div>
+    </div>
+  </div>
+
+<script>
+  // サイドバー: 80件のチャンネル一覧
+  (function () {
+    var parts = [];
+    for (var i = 1; i <= 80; i++) {
+      var num = String(i).padStart(3, '0');
+      parts.push('<div class="channel"># channel-' + num + '</div>');
+    }
+    document.getElementById('sidebar').innerHTML = parts.join('');
+  })();
+
+  // メッセージ一覧: 300行。50行ごとに sticky な日付区切りを挟む
+  (function () {
+    var heights = [40, 56, 72];
+    var count = 300;
+    var parts = [];
+    for (var i = 0; i < count; i++) {
+      if (i % 50 === 0) {
+        var dateIdx = i / 50 + 1;
+        var from = i + 1;
+        var to = Math.min(i + 50, count);
+        parts.push(
+          '<div class="date-sep">Date ' + String(dateIdx).padStart(2, '0') +
+          ' (Row ' + String(from).padStart(3, '0') + ' - Row ' + String(to).padStart(3, '0') + ')</div>'
+        );
+      }
+      var h = heights[i % 3];
+      var bg = i % 2 === 0 ? 'even' : 'odd';
+      var num = String(i + 1).padStart(3, '0');
+      parts.push(
+        '<div class="row ' + bg + '" style="height:' + h + 'px">' +
+        '<span class="ruler">' + num + '</span>' +
+        '<span class="label">Row ' + num + '</span>' +
+        '</div>'
+      );
+    }
+    document.getElementById('messages').innerHTML = parts.join('');
+  })();
+</script>
+</body>
+</html>

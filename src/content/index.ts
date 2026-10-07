@@ -2,14 +2,15 @@
 // background.tsが動き出すきっかけを作っている
 
 import { createOverlay } from './overlay';
-import { WindowScrollTarget, type Point, type Rect, type ScrollTarget } from './scroll-target';
+import { ElementScrollTarget, type Point, type Rect, type ScrollTarget } from './scroll-target';
+import { findFullPageTarget, findScrollTargetAt } from './find-target';
 import { captureRegion } from './capture';
 import { freezeFixedElements } from './freeze';
 
 // 拡張機能が今どんな状態にあるか
 type State =
   | { kind: 'idle' } // 何もしていない、待機中
-  | { kind: 'selecting'; target: ScrollTarget; start: Point; current: Point }
+  | { kind: 'selecting'; target: ScrollTarget; start: Point; current: Point; unlock: () => void }
   | { kind: 'capturing' }; // タイル撮影・合成の最中
 
 // 自動スクロールの調整値（画面端から何px以内で反応するか／最大スクロール速度）
@@ -29,28 +30,30 @@ if (!window.__kokosoko__) {
   // ドラッグ中にマウスを止めたままでも自動スクロールを続けるために必要。
   let lastClient: Point = { x: 0, y: 0 };
 
-  // サイト側の scroll-behavior / overflow-anchor を一時的に上書きし、終了時に元へ戻す
-  const htmlStyle = document.documentElement.style;
-  let prevScrollBehavior = '';
-  let prevOverflowAnchor = '';
+  // 選択範囲の点を、対象要素の「今見えている撮影窓」の内側に収める（content座標のまま返す）
+  // 要素の外までドラッグしても、矩形が要素からはみ出さないようにするため。
+  // 自動スクロールで見える範囲が動けば、収める範囲も一緒に広がるので、長い範囲も選べる。
+  // 対象がwindowのときは従来の挙動を変えないよう、そのまま返す。
+  function clampToTarget(target: ScrollTarget, p: Point): Point {
+    if (!(target instanceof ElementScrollTarget)) return p;
 
-  function lockSmoothScroll(): void {
-    prevScrollBehavior = htmlStyle.scrollBehavior;
-    prevOverflowAnchor = htmlStyle.overflowAnchor;
-    // サイト側の smooth scroll を消す（これが無いとカクつく）
-    htmlStyle.scrollBehavior = 'auto';
-    // Chrome のスクロールアンカリングで中身が勝手にズレるのを防ぐ
-    htmlStyle.overflowAnchor = 'none';
-  }
-
-  function unlockSmoothScroll(): void {
-    htmlStyle.scrollBehavior = prevScrollBehavior;
-    htmlStyle.overflowAnchor = prevOverflowAnchor;
+    const win = target.getWindowRect();
+    const topLeft = target.toContent(win.left, win.top);
+    const bottomRight = target.toContent(win.left + win.width, win.top + win.height);
+    return {
+      x: Math.min(Math.max(p.x, topLeft.x), bottomRight.x),
+      y: Math.min(Math.max(p.y, topLeft.y), bottomRight.y),
+    };
   }
 
   // 今のstateをもとに、オーバーレイの矩形を実際に描画する
   function render(): void {
     if (state.kind !== 'selecting') return;
+
+    // 対象が要素のときだけ、その見えている範囲に枠線を出す（windowのときは出さない）
+    overlay.setTargetFrame(
+      state.target instanceof ElementScrollTarget ? state.target.getWindowRect() : null,
+    );
 
     const startClient = state.target.toClient(state.start.x, state.start.y);
     const currentClient = state.target.toClient(state.current.x, state.current.y);
@@ -65,9 +68,12 @@ if (!window.__kokosoko__) {
 
   // ドラッグ中の選択を取り消し、idleに戻す（矩形を消し、スクロール設定も元に戻す）
   function cancelSelection(): void {
+    if (state.kind !== 'selecting') return;
+    const { unlock } = state;
     state = { kind: 'idle' };
     overlay.setRect(null);
-    unlockSmoothScroll();
+    overlay.setTargetFrame(null);
+    unlock();
   }
 
   // 毎フレーム呼ばれるループ　マウスが画面端に近ければ自動スクロールする
@@ -93,7 +99,7 @@ if (!window.__kokosoko__) {
       // vの値分、今のスクロール位置から下にずらす
       state.target.scrollBy(v);
       // 実際にスクロールされた後の位置で、current を再計算する
-      state.current = state.target.toContent(lastClient.x, lastClient.y);
+      state.current = clampToTarget(state.target, state.target.toContent(lastClient.x, lastClient.y));
       // スクロールに追従して、画面上のどこに矩形を描くべきかを計算する（呼ばなかったら矩形の見た目だけが古い位置に取り残される）
       render();
     }
@@ -111,16 +117,21 @@ if (!window.__kokosoko__) {
 
     // client座標は"今実際に見えている範囲"（ビューポート）の中で、左上を（0, 0）としたと時の位置
     // その為、スクロールした場合の、"そのページ全体での位置"をcontent座標で求める
-    const target = new WindowScrollTarget();
+    // ドラッグを始めた地点にスクロール可能な要素があればそれが対象、無ければwindowが対象になる
+    // （拡張機能自身のオーバーレイは判定から除外する）
+    const target = findScrollTargetAt(event.clientX, event.clientY, (el) => overlay.isOwnElement(el));
 
     // toContent = ページ全体基準の位置（content座標）を返す
     // start = ドラッグを始めた場所
-    const start = target.toContent(event.clientX, event.clientY);
+    const start = clampToTarget(target, target.toContent(event.clientX, event.clientY));
+    const unlock = target.lock();
     // ここからドラッグ開始
     // スクロールしても崩れないよう、start/currentをcontent座標で保持しておく
-    state = { kind: 'selecting', target, start, current: start };
+    state = { kind: 'selecting', target, start, current: start, unlock };
 
-    lockSmoothScroll();
+    // 開始直後にも一度描画して、対象要素の枠線をすぐ表示する
+    render();
+
     requestAnimationFrame(autoScrollLoop);
   }
 
@@ -133,7 +144,7 @@ if (!window.__kokosoko__) {
     if (state.kind !== "selecting") return;
 
     // current = 今、マウスがどこにあるか　マウスが動くたびに変わり続ける点
-    state.current = state.target.toContent(event.clientX, event.clientY);
+    state.current = clampToTarget(state.target, state.target.toContent(event.clientX, event.clientY));
     render();
   }
 
@@ -146,7 +157,37 @@ if (!window.__kokosoko__) {
     if (message.includes('TAB_HIDDEN')) {
       return 'Capture was stopped because the tab became hidden.';
     }
+    if (message.includes('TARGET_LOST')) {
+      return 'Capture was stopped because the scroll area disappeared.';
+    }
+    if (message.includes('SCROLL_INTERRUPTED')) {
+      return 'Capture was stopped because the page kept scrolling. Please avoid scrolling while capturing.';
+    }
     return 'Capture failed. Please try again in a moment.';
+  }
+
+  // 撮影中だけ、ユーザーのスクロール操作（ホイール・タッチ・スクロール用のキー）を無効にする
+  // 撮影はスクロール位置を前提に切り出すため、途中で動かされると重複・抜け・ずれが出る。
+  // オーバーレイは撮影中は隠しているので、操作がそのままページに届いてしまう。
+  // 戻り値の関数を呼ぶと、元どおり操作できるようになる
+  const SCROLL_KEYS = new Set([' ', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'PageUp', 'PageDown', 'Home', 'End']);
+
+  function blockUserScroll(): () => void {
+    const preventScroll = (event: Event): void => event.preventDefault();
+    const preventScrollKey = (event: KeyboardEvent): void => {
+      if (SCROLL_KEYS.has(event.key)) event.preventDefault();
+    };
+    // passive: false にしないと preventDefault() が無視される（Chrome は wheel / touchmove を既定で passive 扱いにするため）
+    // capture: true で、ページ側のリスナーより先に受け取る
+    const options: AddEventListenerOptions = { passive: false, capture: true };
+    window.addEventListener('wheel', preventScroll, options);
+    window.addEventListener('touchmove', preventScroll, options);
+    window.addEventListener('keydown', preventScrollKey, options);
+    return () => {
+      window.removeEventListener('wheel', preventScroll, options);
+      window.removeEventListener('touchmove', preventScroll, options);
+      window.removeEventListener('keydown', preventScrollKey, options);
+    };
   }
 
   // 撮影結果のCanvasをPNGとして保存する
@@ -168,7 +209,7 @@ if (!window.__kokosoko__) {
   async function onPointerUp(): Promise<void> {
     if (state.kind !== "selecting") return;
 
-    const { target, start, current } = state;
+    const { target, start, current, unlock } = state;
     const rect: Rect = {
       top: Math.min(start.y, current.y),
       left: Math.min(start.x, current.x),
@@ -186,7 +227,10 @@ if (!window.__kokosoko__) {
     // オーバーレイ自身が撮影結果に写り込まないよう、完全に隠す
     overlay.hide();
     // 追従するnav/headerなどが、タイルごとに写り込まないよう一時的に隠す
-    const unfreeze = freezeFixedElements();
+    // 対象が要素のときは、その要素（と祖先）は隠さない。隠すと撮影対象ごと消えて真っ白になるため
+    const keep = target instanceof ElementScrollTarget ? target.element : undefined;
+    const unfreeze = freezeFixedElements(keep);
+    const unblock = blockUserScroll();
 
     let failure: unknown;
     try {
@@ -197,8 +241,9 @@ if (!window.__kokosoko__) {
       failure = error;
     } finally {
       // 成功しても失敗しても、必ずページを元の状態に戻す
+      unblock();
       unfreeze();
-      unlockSmoothScroll();
+      unlock();
       state = { kind: 'idle' };
     }
 
@@ -210,25 +255,42 @@ if (!window.__kokosoko__) {
     if (failure) alert(describeCaptureError(failure));
   }
 
-  // popup の「Full Page」から呼ばれる。ドラッグ不要で、window全体を撮影する
+  // popup の「Full Page」から呼ばれる。ドラッグ不要で、対象の中身全体を撮影する
   async function runFullPage(): Promise<void> {
     if (state.kind !== 'idle') return;
 
-    const target = new WindowScrollTarget();
+    // ページ自体がスクロールするなら window、しないなら（Slackなどのアプリ）
+    // 画面で一番大きいスクロール領域を対象にする
+    const target = findFullPageTarget();
     const win = target.getWindowRect();
-    const rect: Rect = {
-      top: 0,
-      left: 0,
-      // win.width(=innerWidth)はスクロールバー分を含んでしまうため、
-      // スクロールバーを含まないページ幅（clientWidth）を使う
-      width: document.documentElement.clientWidth,
-      height: target.getMaxScrollY() + win.height,
-    };
+    let rect: Rect;
+    if (target instanceof ElementScrollTarget) {
+      // 要素の中身を、上端（content座標の0）から下端（scrollHeight）まで撮る
+      // 横方向は、今見えている撮影窓の幅だけ（横スクロールには対応しない）
+      const origin = target.toContent(win.left, win.top);
+      rect = {
+        top: 0,
+        left: origin.x,
+        width: win.width,
+        height: target.element.scrollHeight,
+      };
+    } else {
+      rect = {
+        top: 0,
+        left: 0,
+        // スクロールバーを含まないページ幅（clientWidth）を使う
+        width: document.documentElement.clientWidth,
+        height: target.getMaxScrollY() + win.height,
+      };
+    }
 
     state = { kind: 'capturing' };
     overlay.hide();
-    lockSmoothScroll();
-    const unfreeze = freezeFixedElements();
+    const unlock = target.lock();
+    // 対象が要素のときは、その要素（と祖先）は隠さない。隠すと撮影対象ごと消えて真っ白になるため
+    const keep = target instanceof ElementScrollTarget ? target.element : undefined;
+    const unfreeze = freezeFixedElements(keep);
+    const unblock = blockUserScroll();
 
     let failure: unknown;
     try {
@@ -238,8 +300,9 @@ if (!window.__kokosoko__) {
       console.error('撮影に失敗しました', error);
       failure = error;
     } finally {
+      unblock();
       unfreeze();
-      unlockSmoothScroll();
+      unlock();
       state = { kind: 'idle' };
     }
 
