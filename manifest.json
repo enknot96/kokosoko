@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Koko Soko - ココソコ",
-  "version": "1.0.1",
+  "version": "1.1.0",
   "description": "Capture anything from here to there — select a range and shoot the whole scroll. / ココからソコまで、範囲を指定してスクロールごとスクショ",
   "homepage_url": "https://github.com/enknot96/kokosoko",
   "permissions": ["activeTab", "scripting"],
