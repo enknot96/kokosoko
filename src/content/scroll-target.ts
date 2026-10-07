@@ -61,13 +61,18 @@ export class WindowScrollTarget implements ScrollTarget {
     window.scrollBy(0,dy);
   }
   // ページを一番下までスクロールした時の、scrollYの値を求める関数
+  // innerHeight は横スクロールバーの高さを含んでしまうため、含まない clientHeight を使う
   getMaxScrollY(): number {
-    return document.documentElement.scrollHeight - innerHeight;
+    return document.documentElement.scrollHeight - document.documentElement.clientHeight;
   }
   // ビューポート上で実際に中身が見えている矩形
   // client座標は「ビューポートの左上を原点(0,0)とする」という定義
+  // innerWidth / innerHeight はスクロールバーの分も含むため、そのまま使うと
+  // 横スクロールバーが出ているページで、タイルごとにスクロールバーが写り込んでしまう。
+  // そのため、スクロールバーを含まない clientWidth / clientHeight を使う
   getWindowRect(): Rect {
-    return { top:0, left: 0, width: innerWidth, height: innerHeight};
+    const { clientWidth, clientHeight } = document.documentElement;
+    return { top: 0, left: 0, width: clientWidth, height: clientHeight };
   }
   // 今画面に見えている位置（client座標）を引数で受け取り、
   // それと同じ場所を指す、ページ全体基準の位置（content座標）を返す
@@ -108,10 +113,35 @@ export class WindowScrollTarget implements ScrollTarget {
 export class ElementScrollTarget implements ScrollTarget {
   constructor(readonly element: HTMLElement) {}
 
-  // 要素のpadding box（枠線とスクロールバーを除いた内側）の左上を、client座標で返す
+  // 要素のpadding box（枠線とスクロールバーを除いた内側）を、client座標の矩形で返す
+  // clientWidth / clientHeight は整数に丸められるため、実際の大きさより最大0.5pxほど大きくなることがある。
+  // Retina（2倍）では0.5pxが画面の1ピクセルに当たり、隣の要素の枠線まで切り出して
+  // 継ぎ目に線が出てしまう。そこで、小数のままの getBoundingClientRect() から
+  // 枠線とスクロールバーの幅を差し引いて、実際の内側の大きさを求める
+  private paddingBox(): Rect {
+    const el = this.element;
+    const r = el.getBoundingClientRect();
+    const cs = getComputedStyle(el);
+    const borderTop = parseFloat(cs.borderTopWidth) || 0;
+    const borderRight = parseFloat(cs.borderRightWidth) || 0;
+    const borderBottom = parseFloat(cs.borderBottomWidth) || 0;
+    const borderLeft = parseFloat(cs.borderLeftWidth) || 0;
+    // スクロールバーの太さ = 外枠の大きさ - 内側の大きさ - 枠線（どれも整数なので、ここで丸めの誤差は出ない）
+    // 丸めの都合でマイナスになることがあるので、下限を0にする
+    const scrollbarWidth = Math.max(0, el.offsetWidth - el.clientWidth - Math.round(borderLeft) - Math.round(borderRight));
+    const scrollbarHeight = Math.max(0, el.offsetHeight - el.clientHeight - Math.round(borderTop) - Math.round(borderBottom));
+    return {
+      left: r.left + borderLeft,
+      top: r.top + borderTop,
+      width: Math.max(0, r.width - borderLeft - borderRight - scrollbarWidth),
+      height: Math.max(0, r.height - borderTop - borderBottom - scrollbarHeight),
+    };
+  }
+
+  // padding boxの左上を、client座標で返す（content座標の原点になる）
   private paddingOrigin(): { left: number; top: number } {
-    const r = this.element.getBoundingClientRect();
-    return { left: r.left + this.element.clientLeft, top: r.top + this.element.clientTop };
+    const box = this.paddingBox();
+    return { left: box.left, top: box.top };
   }
 
   getScroll(): Point {
@@ -128,11 +158,11 @@ export class ElementScrollTarget implements ScrollTarget {
   }
   // 要素のpadding boxと、ビューポートが重なる部分の矩形（client座標）を返す
   getWindowRect(): Rect {
-    const o = this.paddingOrigin();
-    const elLeft = o.left;
-    const elTop = o.top;
-    const elRight = elLeft + this.element.clientWidth;
-    const elBottom = elTop + this.element.clientHeight;
+    const box = this.paddingBox();
+    const elLeft = box.left;
+    const elTop = box.top;
+    const elRight = elLeft + box.width;
+    const elBottom = elTop + box.height;
 
     const vpRight = document.documentElement.clientWidth;
     const vpBottom = document.documentElement.clientHeight;

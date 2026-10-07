@@ -160,7 +160,34 @@ if (!window.__kokosoko__) {
     if (message.includes('TARGET_LOST')) {
       return 'Capture was stopped because the scroll area disappeared.';
     }
+    if (message.includes('SCROLL_INTERRUPTED')) {
+      return 'Capture was stopped because the page kept scrolling. Please avoid scrolling while capturing.';
+    }
     return 'Capture failed. Please try again in a moment.';
+  }
+
+  // 撮影中だけ、ユーザーのスクロール操作（ホイール・タッチ・スクロール用のキー）を無効にする
+  // 撮影はスクロール位置を前提に切り出すため、途中で動かされると重複・抜け・ずれが出る。
+  // オーバーレイは撮影中は隠しているので、操作がそのままページに届いてしまう。
+  // 戻り値の関数を呼ぶと、元どおり操作できるようになる
+  const SCROLL_KEYS = new Set([' ', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'PageUp', 'PageDown', 'Home', 'End']);
+
+  function blockUserScroll(): () => void {
+    const preventScroll = (event: Event): void => event.preventDefault();
+    const preventScrollKey = (event: KeyboardEvent): void => {
+      if (SCROLL_KEYS.has(event.key)) event.preventDefault();
+    };
+    // passive: false にしないと preventDefault() が無視される（Chrome は wheel / touchmove を既定で passive 扱いにするため）
+    // capture: true で、ページ側のリスナーより先に受け取る
+    const options: AddEventListenerOptions = { passive: false, capture: true };
+    window.addEventListener('wheel', preventScroll, options);
+    window.addEventListener('touchmove', preventScroll, options);
+    window.addEventListener('keydown', preventScrollKey, options);
+    return () => {
+      window.removeEventListener('wheel', preventScroll, options);
+      window.removeEventListener('touchmove', preventScroll, options);
+      window.removeEventListener('keydown', preventScrollKey, options);
+    };
   }
 
   // 撮影結果のCanvasをPNGとして保存する
@@ -203,6 +230,7 @@ if (!window.__kokosoko__) {
     // 対象が要素のときは、その要素（と祖先）は隠さない。隠すと撮影対象ごと消えて真っ白になるため
     const keep = target instanceof ElementScrollTarget ? target.element : undefined;
     const unfreeze = freezeFixedElements(keep);
+    const unblock = blockUserScroll();
 
     let failure: unknown;
     try {
@@ -213,6 +241,7 @@ if (!window.__kokosoko__) {
       failure = error;
     } finally {
       // 成功しても失敗しても、必ずページを元の状態に戻す
+      unblock();
       unfreeze();
       unlock();
       state = { kind: 'idle' };
@@ -235,7 +264,6 @@ if (!window.__kokosoko__) {
     const rect: Rect = {
       top: 0,
       left: 0,
-      // win.width(=innerWidth)はスクロールバー分を含んでしまうため、
       // スクロールバーを含まないページ幅（clientWidth）を使う
       width: document.documentElement.clientWidth,
       height: target.getMaxScrollY() + win.height,
@@ -245,6 +273,7 @@ if (!window.__kokosoko__) {
     overlay.hide();
     const unlock = target.lock();
     const unfreeze = freezeFixedElements();
+    const unblock = blockUserScroll();
 
     let failure: unknown;
     try {
@@ -254,6 +283,7 @@ if (!window.__kokosoko__) {
       console.error('撮影に失敗しました', error);
       failure = error;
     } finally {
+      unblock();
       unfreeze();
       unlock();
       state = { kind: 'idle' };
