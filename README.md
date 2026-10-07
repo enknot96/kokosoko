@@ -41,6 +41,7 @@ Long tables, full articles, chat logs — anything that doesn't fit on one scree
 ### Features
 
 - **Area selection × scroll capture** — even if the selected area extends beyond the viewport, the extension scrolls automatically and stitches everything into one image
+- **Works inside scrollable areas, too** — in web apps such as Slack, Chatwork, Discord, Notion, and Gmail, where a message list or panel scrolls instead of the page itself, the extension scrolls that area and captures it as one image
 - **Fully local** — capturing and stitching both happen inside your browser. No image, and no page content, is ever sent to any server
 - **Sticky elements are hidden automatically** — fixed headers and sidebars are temporarily hidden during capture, so they don't appear repeated throughout the stitched image
 - **Minimal permissions** — only `activeTab` and `scripting`. No broad, always-on access to every site you visit
@@ -57,8 +58,8 @@ Long tables, full articles, chat logs — anything that doesn't fit on one scree
 
 1. Click the extension's icon
 2. In the popup, choose **Full Page** or **Select Area**
-   - **Full Page**: automatically scrolls from the top of the page to the bottom and captures everything
-   - **Select Area**: drag to select the area you want, and release to start capturing (the page auto-scrolls as you approach the edge of the screen, so the selection can extend past the viewport)
+   - **Full Page**: automatically scrolls from the top of the page to the bottom and captures everything. If the page itself doesn't scroll (as in apps like Slack), the largest scrollable area on the screen is captured from top to bottom instead
+   - **Select Area**: drag to select the area you want, and release to start capturing (the page auto-scrolls as you approach the edge of the screen, so the selection can extend past the viewport). If you start dragging inside a scrollable area, that area becomes the target and is outlined with an orange dashed frame
 3. Once done, a PNG file is downloaded automatically
 
 Press `Esc` while selecting to cancel (once capturing has started, it can't be cancelled).
@@ -73,9 +74,16 @@ The following comes from how Chrome itself works and cannot be fixed by the exte
 
 - **It does not work on `chrome://` pages, the Chrome Web Store, or the extensions management page** — Chrome forbids content scripts from running on those pages. Clicking the icon there shows "Not available on this page" in the popup
 
+The following are current limitations of the extension.
+
+- **Horizontal scrolling is not supported** — only the visible width is captured
+- **Content that changes during capture may be misaligned** — for example, when older messages load in while capturing. In apps with long histories, only the messages already loaded are captured
+- **Elements inside iframes are not supported**
+- **Sites that use smooth-scrolling libraries (such as GSAP ScrollSmoother) may come out blank**
+
 ### Roadmap
 
-- **Support for scrollable containers** — web apps such as Chatwork, Slack, and Notion scroll the contents of a specific container rather than the page itself, and capture doesn't work correctly there yet
+- **Support for sites that use smooth scrolling** — sites built with libraries such as GSAP ScrollSmoother currently come out blank
 - **Better handling of very large pages** — if the stitched image would exceed the browser's maximum canvas size, the capture currently fails with an error. A prompt to continue at a reduced resolution is planned
 
 ### Privacy
@@ -140,6 +148,7 @@ Please report bugs and feature requests on [GitHub Issues](https://github.com/en
 ### 主な特徴
 
 - **範囲指定 × スクロール撮影** — 選んだ範囲が画面の外まで続いていても、自動でスクロールしながら撮影して1枚に合成します
+- **要素内のスクロールにも対応** — Slack、Chatwork、Discord、Notion、Gmail など、ページ全体ではなくメッセージ一覧などの「特定の領域」がスクロールするWebアプリでも、その領域をスクロールしながら1枚に撮影できます
 - **完全にローカルで完結** — 撮影も画像の合成もブラウザ内で行います。画像やページの内容が外部サーバーに送信されることは一切ありません
 - **追従ヘッダーを自動で退避** — 固定表示のヘッダーやサイドバーは撮影中だけ一時的に非表示にするので、合成画像に同じヘッダーが何度も写り込みません
 - **最小限の権限** — 要求するのは `activeTab` と `scripting` のみ。訪問するすべてのサイトを常時読み書きできるような強い権限は要求しません
@@ -156,8 +165,8 @@ Please report bugs and feature requests on [GitHub Issues](https://github.com/en
 
 1. 拡張機能のアイコンをクリックする
 2. 出てきたポップアップで「Full Page」（ページ全体）か「Select Area」（範囲を選ぶ）を選ぶ
-   - **Full Page**: そのままページの先頭から末尾まで自動でスクロールしながら撮影します
-   - **Select Area**: ドラッグで撮影したい範囲を選択し、指を離すと撮影が始まります（画面の端に近づくと自動スクロールするので、画面外まで範囲を広げられます）
+   - **Full Page**: そのままページの先頭から末尾まで自動でスクロールしながら撮影します。ページ自体がスクロールしない場合（Slack などのアプリ）は、画面で一番大きいスクロール領域を上から下まで撮影します
+   - **Select Area**: ドラッグで撮影したい範囲を選択し、指を離すと撮影が始まります（画面の端に近づくと自動スクロールするので、画面外まで範囲を広げられます）。スクロールする領域の中でドラッグを始めると、その領域が撮影の対象になり、オレンジの点線の枠で示されます
 3. 撮影が終わるとPNGファイルとして自動的にダウンロードされます
 
 範囲選択中に `Esc` キーを押すとキャンセルできます（撮影が始まった後はキャンセルできません）。
@@ -172,9 +181,16 @@ Please report bugs and feature requests on [GitHub Issues](https://github.com/en
 
 - **`chrome://` で始まるページ、Chrome ウェブストア、拡張機能の管理画面では動作しません** — これらのページはChromeがコンテンツスクリプトの実行を禁じているためです。該当するページでアイコンをクリックすると、ポップアップに「Not available on this page」と表示されます
 
+また、現時点では次の制限があります。
+
+- **横スクロールには対応していません** — 撮影されるのは、見えている幅の範囲だけです
+- **撮影中に内容が増減すると、ずれることがあります** — たとえば撮影中に過去のメッセージが読み込まれた場合です。履歴の長いアプリでは、撮影の時点で読み込まれている分までが撮影されます
+- **iframe の中の要素には対応していません**
+- **滑らかスクロールのライブラリ（GSAP ScrollSmoother など）を使うサイトでは、画像が真っ白になることがあります**
+
 ### 今後の対応予定
 
-- **要素内スクロールへの対応** — Chatwork、Slack、Notion など、ページ全体ではなく「特定のコンテナの中身」がスクロールするタイプのWebアプリでは、現在うまく撮影できません
+- **滑らかスクロールを使うサイトへの対応** — GSAP ScrollSmoother などのライブラリを使うサイトでは、現在は画像が真っ白になります
 - **巨大なページを撮影したときの挙動改善** — 合成後の画像がブラウザのCanvasサイズ上限を超える場合、現在はエラーになります。画質を落として撮影を続行するかを選べるようにする予定です
 
 ### プライバシー
