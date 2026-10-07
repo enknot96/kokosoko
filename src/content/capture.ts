@@ -89,6 +89,8 @@ export async function captureRegion(rect: Rect, target: ScrollTarget): Promise<H
     if (document.visibilityState === 'hidden') {
       throw new Error('TAB_HIDDEN');
     }
+    // スクロール対象の要素が撮影中にDOMから消えた場合、座標が計算できないため中断する
+    if (!target.isConnected()) throw new Error('TARGET_LOST');
 
     // 頼んだ位置が maxScroll を超えないようにクランプしてからスクロール
     target.scrollToShowContentAt(Math.min(contentY, maxScroll));
@@ -101,12 +103,18 @@ export async function captureRegion(rect: Rect, target: ScrollTarget): Promise<H
 
     // chrome.tabs.captureVisibleTabは画面全体を撮るため、ユーザーが欲しい部分を別途コードで切り出す必要がある
     // 撮影窓の上端が、content座標でいうとどこにいるか
-    const windowTopContent = actual;
-    // sliceTop: 「次に埋めたい位置」と「実際に撮影窓の上端が来た位置」、大きい方
+    // 要素の上端が画面外にはみ出していると、撮影窓の上端とscrollTopは一致しない。
+    // そのため actual を直接使わず、toContent() に撮影窓の左上（client座標）を渡して求める
+    const windowTopContent = target.toContent(win.left, win.top).y;
+    // sliceTop: 「次に埋めたい位置」と「実際に撮影窓の上端が来た位置」、大きい方（content座標）
     const sliceTop = Math.max(contentY, windowTopContent);
-    // sliceBottom: 「選択範囲の終わり」と「このタイルで見えている範囲の終わり」、小さい方
+    // sliceBottom: 「選択範囲の終わり」と「このタイルで見えている範囲の終わり（撮影窓の上端 + 窓の高さ）」、小さい方（content座標）
     const sliceBottom = Math.min(rect.top + rect.height, windowTopContent + win.height);
     const sliceHeight = sliceBottom - sliceTop;
+    // 切り出し元の左上を、スクリーンショット上の位置（client座標）に変換する
+    // content座標の rect.left をそのまま使うと、撮影窓の左端がビューポートの左端と
+    // 一致しない要素や、横スクロール中のページでずれてしまうため
+    const src = target.toClient(rect.left, sliceTop);
 
     // 基本的にsliceHeightはプラスの値になるが、想定外の状況になった場合、無理にdrawImageを呼ばずループを終了させる
     if (sliceHeight <= 0) {
@@ -116,9 +124,9 @@ export async function captureRegion(rect: Rect, target: ScrollTarget): Promise<H
 
     ctx.drawImage(
       bitmap,
-      // src: 撮影された画像(bitmap)の、どこから切り出すか（実際のピクセル単位 = × scale）
-      rect.left * scale,
-      (win.top + (sliceTop - windowTopContent)) * scale,
+      // src: 撮影された画像(bitmap)の、どこから切り出すか（client座標 × scale = 実際のピクセル単位）
+      src.x * scale,
+      src.y * scale,
       rect.width * scale,
       sliceHeight * scale,
       // dest: Canvas上の、どこに貼るか
