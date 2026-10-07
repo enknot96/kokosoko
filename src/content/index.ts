@@ -2,8 +2,8 @@
 // background.tsが動き出すきっかけを作っている
 
 import { createOverlay } from './overlay';
-import { ElementScrollTarget, WindowScrollTarget, type Point, type Rect, type ScrollTarget } from './scroll-target';
-import { findScrollTargetAt } from './find-target';
+import { ElementScrollTarget, type Point, type Rect, type ScrollTarget } from './scroll-target';
+import { findFullPageTarget, findScrollTargetAt } from './find-target';
 import { captureRegion } from './capture';
 import { freezeFixedElements } from './freeze';
 
@@ -255,24 +255,41 @@ if (!window.__kokosoko__) {
     if (failure) alert(describeCaptureError(failure));
   }
 
-  // popup の「Full Page」から呼ばれる。ドラッグ不要で、window全体を撮影する
+  // popup の「Full Page」から呼ばれる。ドラッグ不要で、対象の中身全体を撮影する
   async function runFullPage(): Promise<void> {
     if (state.kind !== 'idle') return;
 
-    const target = new WindowScrollTarget();
+    // ページ自体がスクロールするなら window、しないなら（Slackなどのアプリ）
+    // 画面で一番大きいスクロール領域を対象にする
+    const target = findFullPageTarget();
     const win = target.getWindowRect();
-    const rect: Rect = {
-      top: 0,
-      left: 0,
-      // スクロールバーを含まないページ幅（clientWidth）を使う
-      width: document.documentElement.clientWidth,
-      height: target.getMaxScrollY() + win.height,
-    };
+    let rect: Rect;
+    if (target instanceof ElementScrollTarget) {
+      // 要素の中身を、上端（content座標の0）から下端（scrollHeight）まで撮る
+      // 横方向は、今見えている撮影窓の幅だけ（横スクロールには対応しない）
+      const origin = target.toContent(win.left, win.top);
+      rect = {
+        top: 0,
+        left: origin.x,
+        width: win.width,
+        height: target.element.scrollHeight,
+      };
+    } else {
+      rect = {
+        top: 0,
+        left: 0,
+        // スクロールバーを含まないページ幅（clientWidth）を使う
+        width: document.documentElement.clientWidth,
+        height: target.getMaxScrollY() + win.height,
+      };
+    }
 
     state = { kind: 'capturing' };
     overlay.hide();
     const unlock = target.lock();
-    const unfreeze = freezeFixedElements();
+    // 対象が要素のときは、その要素（と祖先）は隠さない。隠すと撮影対象ごと消えて真っ白になるため
+    const keep = target instanceof ElementScrollTarget ? target.element : undefined;
+    const unfreeze = freezeFixedElements(keep);
     const unblock = blockUserScroll();
 
     let failure: unknown;
