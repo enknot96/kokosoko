@@ -9,7 +9,7 @@ import { freezeFixedElements } from './freeze';
 // 拡張機能が今どんな状態にあるか
 type State =
   | { kind: 'idle' } // 何もしていない、待機中
-  | { kind: 'selecting'; target: ScrollTarget; start: Point; current: Point }
+  | { kind: 'selecting'; target: ScrollTarget; start: Point; current: Point; unlock: () => void }
   | { kind: 'capturing' }; // タイル撮影・合成の最中
 
 // 自動スクロールの調整値（画面端から何px以内で反応するか／最大スクロール速度）
@@ -29,25 +29,6 @@ if (!window.__kokosoko__) {
   // ドラッグ中にマウスを止めたままでも自動スクロールを続けるために必要。
   let lastClient: Point = { x: 0, y: 0 };
 
-  // サイト側の scroll-behavior / overflow-anchor を一時的に上書きし、終了時に元へ戻す
-  const htmlStyle = document.documentElement.style;
-  let prevScrollBehavior = '';
-  let prevOverflowAnchor = '';
-
-  function lockSmoothScroll(): void {
-    prevScrollBehavior = htmlStyle.scrollBehavior;
-    prevOverflowAnchor = htmlStyle.overflowAnchor;
-    // サイト側の smooth scroll を消す（これが無いとカクつく）
-    htmlStyle.scrollBehavior = 'auto';
-    // Chrome のスクロールアンカリングで中身が勝手にズレるのを防ぐ
-    htmlStyle.overflowAnchor = 'none';
-  }
-
-  function unlockSmoothScroll(): void {
-    htmlStyle.scrollBehavior = prevScrollBehavior;
-    htmlStyle.overflowAnchor = prevOverflowAnchor;
-  }
-
   // 今のstateをもとに、オーバーレイの矩形を実際に描画する
   function render(): void {
     if (state.kind !== 'selecting') return;
@@ -65,9 +46,11 @@ if (!window.__kokosoko__) {
 
   // ドラッグ中の選択を取り消し、idleに戻す（矩形を消し、スクロール設定も元に戻す）
   function cancelSelection(): void {
+    if (state.kind !== 'selecting') return;
+    const { unlock } = state;
     state = { kind: 'idle' };
     overlay.setRect(null);
-    unlockSmoothScroll();
+    unlock();
   }
 
   // 毎フレーム呼ばれるループ　マウスが画面端に近ければ自動スクロールする
@@ -116,11 +99,11 @@ if (!window.__kokosoko__) {
     // toContent = ページ全体基準の位置（content座標）を返す
     // start = ドラッグを始めた場所
     const start = target.toContent(event.clientX, event.clientY);
+    const unlock = target.lock();
     // ここからドラッグ開始
     // スクロールしても崩れないよう、start/currentをcontent座標で保持しておく
-    state = { kind: 'selecting', target, start, current: start };
+    state = { kind: 'selecting', target, start, current: start, unlock };
 
-    lockSmoothScroll();
     requestAnimationFrame(autoScrollLoop);
   }
 
@@ -168,7 +151,7 @@ if (!window.__kokosoko__) {
   async function onPointerUp(): Promise<void> {
     if (state.kind !== "selecting") return;
 
-    const { target, start, current } = state;
+    const { target, start, current, unlock } = state;
     const rect: Rect = {
       top: Math.min(start.y, current.y),
       left: Math.min(start.x, current.x),
@@ -198,7 +181,7 @@ if (!window.__kokosoko__) {
     } finally {
       // 成功しても失敗しても、必ずページを元の状態に戻す
       unfreeze();
-      unlockSmoothScroll();
+      unlock();
       state = { kind: 'idle' };
     }
 
@@ -227,7 +210,7 @@ if (!window.__kokosoko__) {
 
     state = { kind: 'capturing' };
     overlay.hide();
-    lockSmoothScroll();
+    const unlock = target.lock();
     const unfreeze = freezeFixedElements();
 
     let failure: unknown;
@@ -239,7 +222,7 @@ if (!window.__kokosoko__) {
       failure = error;
     } finally {
       unfreeze();
-      unlockSmoothScroll();
+      unlock();
       state = { kind: 'idle' };
     }
 
