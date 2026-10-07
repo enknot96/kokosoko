@@ -8,6 +8,10 @@ export interface Overlay {
   // 撮影中など、一時的にオーバーレイ自身を非表示にする（destroyと違い後で復元できる）
   hide(): void;
   show(): void;
+  // スクロール対象の要素の範囲（client座標）に枠線を出す。nullなら消す
+  setTargetFrame(rect: Rect | null): void;
+  // 渡された要素が、このオーバーレイ自身（またはその中身）かどうか
+  isOwnElement(el: Element): boolean;
 }
 
 export function createOverlay(): Overlay {
@@ -29,6 +33,18 @@ export function createOverlay(): Overlay {
     background: rgba(0, 0, 0, 0.35);
   `;
   shadow.appendChild(dimmer);
+
+  // スクロール対象の要素の範囲を示す枠線　選択矩形（border）より下に描画されるよう、
+  // dimmerの直後・borderより前に追加する
+  const frame = document.createElement('div');
+  frame.style.cssText = `
+    position: absolute;
+    box-sizing: border-box;
+    border: 2px dashed #ffb020;
+    display: none;
+    pointer-events: none;
+  `;
+  shadow.appendChild(frame);
 
   const border = document.createElement('div');
   border.style.cssText = `
@@ -83,6 +99,24 @@ export function createOverlay(): Overlay {
     label.textContent = `${Math.round(width)} × ${Math.round(height)}`;
   }
 
+  function setTargetFrame(rect: Rect | null): void {
+    if (!rect) {
+      frame.style.display = 'none';
+      return;
+    }
+
+    const { top, left, width, height } = rect;
+    frame.style.display = 'block';
+    frame.style.top = `${top}px`;
+    frame.style.left = `${left}px`;
+    frame.style.width = `${width}px`;
+    frame.style.height = `${height}px`;
+  }
+
+  function isOwnElement(el: Element): boolean {
+    return el === host || host.contains(el);
+  }
+
   function destroy(): void {
     host.remove();
   }
@@ -96,5 +130,5 @@ export function createOverlay(): Overlay {
     host.style.display = '';
   }
 
-  return { setRect, destroy, hide, show };
+  return { setRect, destroy, hide, show, setTargetFrame, isOwnElement };
 }
