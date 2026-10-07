@@ -2,7 +2,8 @@
 // background.tsが動き出すきっかけを作っている
 
 import { createOverlay } from './overlay';
-import { WindowScrollTarget, type Point, type Rect, type ScrollTarget } from './scroll-target';
+import { ElementScrollTarget, WindowScrollTarget, type Point, type Rect, type ScrollTarget } from './scroll-target';
+import { findScrollTargetAt } from './find-target';
 import { captureRegion } from './capture';
 import { freezeFixedElements } from './freeze';
 
@@ -29,9 +30,30 @@ if (!window.__kokosoko__) {
   // ドラッグ中にマウスを止めたままでも自動スクロールを続けるために必要。
   let lastClient: Point = { x: 0, y: 0 };
 
+  // 選択範囲の点を、対象要素の「今見えている撮影窓」の内側に収める（content座標のまま返す）
+  // 要素の外までドラッグしても、矩形が要素からはみ出さないようにするため。
+  // 自動スクロールで見える範囲が動けば、収める範囲も一緒に広がるので、長い範囲も選べる。
+  // 対象がwindowのときは従来の挙動を変えないよう、そのまま返す。
+  function clampToTarget(target: ScrollTarget, p: Point): Point {
+    if (!(target instanceof ElementScrollTarget)) return p;
+
+    const win = target.getWindowRect();
+    const topLeft = target.toContent(win.left, win.top);
+    const bottomRight = target.toContent(win.left + win.width, win.top + win.height);
+    return {
+      x: Math.min(Math.max(p.x, topLeft.x), bottomRight.x),
+      y: Math.min(Math.max(p.y, topLeft.y), bottomRight.y),
+    };
+  }
+
   // 今のstateをもとに、オーバーレイの矩形を実際に描画する
   function render(): void {
     if (state.kind !== 'selecting') return;
+
+    // 対象が要素のときだけ、その見えている範囲に枠線を出す（windowのときは出さない）
+    overlay.setTargetFrame(
+      state.target instanceof ElementScrollTarget ? state.target.getWindowRect() : null,
+    );
 
     const startClient = state.target.toClient(state.start.x, state.start.y);
     const currentClient = state.target.toClient(state.current.x, state.current.y);
@@ -50,6 +72,7 @@ if (!window.__kokosoko__) {
     const { unlock } = state;
     state = { kind: 'idle' };
     overlay.setRect(null);
+    overlay.setTargetFrame(null);
     unlock();
   }
 
@@ -76,7 +99,7 @@ if (!window.__kokosoko__) {
       // vの値分、今のスクロール位置から下にずらす
       state.target.scrollBy(v);
       // 実際にスクロールされた後の位置で、current を再計算する
-      state.current = state.target.toContent(lastClient.x, lastClient.y);
+      state.current = clampToTarget(state.target, state.target.toContent(lastClient.x, lastClient.y));
       // スクロールに追従して、画面上のどこに矩形を描くべきかを計算する（呼ばなかったら矩形の見た目だけが古い位置に取り残される）
       render();
     }
@@ -94,15 +117,20 @@ if (!window.__kokosoko__) {
 
     // client座標は"今実際に見えている範囲"（ビューポート）の中で、左上を（0, 0）としたと時の位置
     // その為、スクロールした場合の、"そのページ全体での位置"をcontent座標で求める
-    const target = new WindowScrollTarget();
+    // ドラッグを始めた地点にスクロール可能な要素があればそれが対象、無ければwindowが対象になる
+    // （拡張機能自身のオーバーレイは判定から除外する）
+    const target = findScrollTargetAt(event.clientX, event.clientY, (el) => overlay.isOwnElement(el));
 
     // toContent = ページ全体基準の位置（content座標）を返す
     // start = ドラッグを始めた場所
-    const start = target.toContent(event.clientX, event.clientY);
+    const start = clampToTarget(target, target.toContent(event.clientX, event.clientY));
     const unlock = target.lock();
     // ここからドラッグ開始
     // スクロールしても崩れないよう、start/currentをcontent座標で保持しておく
     state = { kind: 'selecting', target, start, current: start, unlock };
+
+    // 開始直後にも一度描画して、対象要素の枠線をすぐ表示する
+    render();
 
     requestAnimationFrame(autoScrollLoop);
   }
@@ -116,7 +144,7 @@ if (!window.__kokosoko__) {
     if (state.kind !== "selecting") return;
 
     // current = 今、マウスがどこにあるか　マウスが動くたびに変わり続ける点
-    state.current = state.target.toContent(event.clientX, event.clientY);
+    state.current = clampToTarget(state.target, state.target.toContent(event.clientX, event.clientY));
     render();
   }
 
@@ -128,6 +156,9 @@ if (!window.__kokosoko__) {
     }
     if (message.includes('TAB_HIDDEN')) {
       return 'Capture was stopped because the tab became hidden.';
+    }
+    if (message.includes('TARGET_LOST')) {
+      return 'Capture was stopped because the scroll area disappeared.';
     }
     return 'Capture failed. Please try again in a moment.';
   }
@@ -169,7 +200,9 @@ if (!window.__kokosoko__) {
     // オーバーレイ自身が撮影結果に写り込まないよう、完全に隠す
     overlay.hide();
     // 追従するnav/headerなどが、タイルごとに写り込まないよう一時的に隠す
-    const unfreeze = freezeFixedElements();
+    // 対象が要素のときは、その要素（と祖先）は隠さない。隠すと撮影対象ごと消えて真っ白になるため
+    const keep = target instanceof ElementScrollTarget ? target.element : undefined;
+    const unfreeze = freezeFixedElements(keep);
 
     let failure: unknown;
     try {
